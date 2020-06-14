@@ -99,4 +99,15 @@ public class Product implements Comparable<Product> {
     public int compareTo(Product o) {
         return Float.compare (this.price,o.price);
     }
+
+    @Override
+    public String toString() {
+        return "Product{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", condition='" + condition + '\'' +
+                ", state='" + state + '\'' +
+                ", price=" + price +
+                '}';
+    }
 }

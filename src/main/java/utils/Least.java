@@ -7,11 +7,32 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Least {
-    public static <T extends Comparable<T>> List<T> leastN(Collection<T> input, int maxCount) {
+//    public static <T extends Comparable<T>> PriorityQueue<T> leastN(Collection<T> input, int maxCount) {
+//        assert maxCount > 0;
+//        int count= 0;
+//        PriorityQueue<T> pq = new PriorityQueue<>(maxCount, Collections.reverseOrder());
+//        for (T t : input) {
+//            if (count < maxCount) {
+//                pq.add(t);
+//                ++count;
+//            } else {
+//                assert pq.peek() != null;
+//                if (pq.peek().compareTo(t) > 0) {
+//                    pq.poll();
+//                    pq.add(t);
+//                }
+//            }
+//        }
+////        List<T> list = new ArrayList<> (pq);
+////        Collections.sort(list);
+//        return pq;
+//    }
+
+    public static  Queue<Product> leastN(Collection<Product> input, int maxCount) {
         assert maxCount > 0;
         int count= 0;
-        PriorityQueue<T> pq = new PriorityQueue<T> (Collections.reverseOrder());
-        for (T t : input) {
+        Queue<Product> pq = new PriorityBlockingQueue<>(maxCount, priceComparator);
+        for (Product t : input) {
             if (count < maxCount) {
                 pq.add(t);
                 ++count;
@@ -23,9 +44,13 @@ public class Least {
                 }
             }
         }
-        List<T> list = new ArrayList<> (pq);
-        Collections.sort(list);
-        return list;
+//        List<Product> list = new ArrayList<> (pq);
+//        for (int i = 0; i < pq.size(); i++) {
+//            System.out.println(Thread.currentThread().getName()+ " " +pq.poll().toString());
+//        }
+//        Collections.sort(list);
+
+        return pq;
     }
 
     public static void checkAndChangeBean(Product p, PriorityBlockingQueue<Product> product, int maxRep, AtomicInteger count){
@@ -41,5 +66,5 @@ public class Least {
         }
     }
 
-
+    public static Comparator<Product> priceComparator = (x,y) -> Float.compare (y.getPrice(),x.getPrice());
 }
