@@ -3,11 +3,13 @@ package importdata;
 import com.opencsv.bean.CsvToBeanBuilder;
 import model.Product;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FilenameFilter;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static utils.Least.checkAndChangeBean;
 import static utils.Least.leastN;
@@ -18,9 +20,8 @@ public class ImportCsv {
     public static void main(String[] args) {
 
 
-        String temp = uiAnswer("Введите символ разделителя данных в файле(ах), актуальным будет только первый символ, введеной строки, остальные - игнорируются(пример разделителя  ;    :");
+        String temp = uiAnswer("Введите символ разделителя данных в файле(ах)(пример разделителя  ;    :");
         char delimiter = temp.length()>0? temp.charAt(0): ',';
-//        char delimiter = ',';
         lokForDir(delimiter);
         sc.close();
 
@@ -28,17 +29,11 @@ public class ImportCsv {
 
     private static String uiAnswer(String question){
         String answer="";
-        //            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-//            Scanner sc = new Scanner(System.in);
 
         while (answer.equals("")){
             System.out.print(question);
             answer = sc.next();
-//                answer = reader.readLine();
         }
-
-//            reader.close();
-//            sc.close();
 
         return answer;
     }
@@ -86,57 +81,7 @@ while (!fileTree.isEmpty())
     }
 
 
-//    private static void select(final File directory, final Character delimiter) {
-//        FilenameFilter filter = (file, name)-> name.endsWith(".csv");
-//
-//        File[] files = directory.listFiles(filter);
-//
-////        добавить обход папок в глубину
-//
-//        if (files == null) {
-//            System.out.println("Нет доступных файлов для обработки.");
-//            return;
-//        } else {
-//            System.out.println("Количество файлов для обработки: " + files.length);
-//        }
-//        int waitTime;
-//        int temp = Integer.parseInt("Введите ожидаемое время работы программы в минутах(по умолчанию 1 000):");
-//        if (temp<1){
-//            waitTime =1000;
-//        }else {
-//            waitTime = temp;
-//        }
-//
-////        ConcurrentHashMap <>
-//
-//    }
 
-
-//    private static void sortBySystem(String path, String fileName, Character delimiter, Map<String, CurrentProcessingData> mapSortFiles){
-//        {
-////           создать папку для хранения временных файлов
-//
-//            try
-//            {
-//                //здесь "sleep 15" и есть ваша консольная команда
-//
-//                // -t, - если делитель - запятая
-//
-////          sort.exe yourfile.csv -t, -k5 -g -o sorted.csv
-//                String outFileName = fileName.substring(0,fileName.indexOf('.') ) + "sort.csv";
-//
-//                String command = path+"\\sort.exe "+ fileName + " -t" + delimiter + " -k5 -g -o  " + outFileName; // sort -k5 -g file.csv > sorted.csv для Linux
-//                Process proc = Runtime.getRuntime().exec(command);
-//                proc.waitFor();
-//                proc.destroy();
-//                mapSortFiles.put(outFileName, new CurrentProcessingData(0,false,  -1.0f));
-//            }
-//            catch (IOException | InterruptedException e)
-//            {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
 
     private static Queue<Product> makerToMap(File file, Character delimiter, int maxSizeMap ) throws FileNotFoundException {
 
@@ -147,8 +92,6 @@ while (!fileTree.isEmpty())
                 maxSizeMap);
 
     }
-
-
 
 
 
@@ -180,11 +123,13 @@ while (!fileTree.isEmpty())
 
         // Непосредственно многопоточная обработка файлов.
         final int treadCount = Runtime.getRuntime().availableProcessors() + 1; // количество потоков, которые могу запустить
-        ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult = new ConcurrentHashMap<> (maxSizeMap,0.5f,treadCount  );
+
+
+
+
+        ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult = new ConcurrentHashMap<> (maxSizeMap,0.5f,treadCount );
         AtomicInteger countSize = new AtomicInteger ( 0 );
         PriorityBlockingQueue<Float> priceQueue = new PriorityBlockingQueue<>(maxSizeMap,Comparator.reverseOrder());
-
-//        ConcurrentHashMap<Integer, CountProduct> mapResult = new ConcurrentHashMap<Integer, CountProduct> (1000,0.5f,treadCount);
 
         ExecutorService service = Executors.newFixedThreadPool(treadCount);
 
@@ -206,14 +151,16 @@ while (!fileTree.isEmpty())
             e.printStackTrace();
         }
 
-//        AtomicReference<PriorityQueue<Product>> res = new AtomicReference<>(new PriorityQueue<>(maxSizeMap, Comparator.reverseOrder()));
-//        mapResult.forEach((key, value) -> res.get().addAll(value));
+        PriorityQueue<Product> res = new PriorityQueue<>(maxSizeMap);
+        mapResult.forEach((key, value) -> res.addAll(value));
 
+
+        //Переделать потом в выгрузку в файл
+        for (int i = 0; i < maxSizeMap; i++) {
+            System.out.println(res.poll());
+        }
 
     }
-
-
-
 
 
 
@@ -221,14 +168,17 @@ while (!fileTree.isEmpty())
     private static void makerFinalList(File f, Character delimiter, ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult, int maxSizeOutFile, int maxRep, AtomicInteger count, PriorityBlockingQueue<Float> priceQueue) throws FileNotFoundException {
         Queue<Product> inputList = makerToMap (f,delimiter,maxSizeOutFile);
         for (Product p: inputList) {
-            priceQueue.add(p.getPrice());
+            if(count.get() == 0){
+                priceQueue.add(p.getPrice());
+                count.addAndGet (1);
+            }
             assert priceQueue.peek() != null;
             if(priceQueue.peek().compareTo(p.getPrice())>0){
                 if(mapResult.containsKey (p.getId ())){
                     checkAndChangeBean (p,mapResult.get (p.getId ()), maxRep,count);
                 }else {
                     PriorityBlockingQueue<Product> queue = new PriorityBlockingQueue<>(maxRep, Collections.reverseOrder());
-                    queue.add (p);
+                    queue.offer (p);
                     mapResult.put (p.getId (),queue);
                     count.addAndGet (1);
                 }
@@ -237,25 +187,5 @@ while (!fileTree.isEmpty())
         }
 
     }
-
-
-//    private static List<Product> readCSV(String fileName, Character delimiter, int lastReadline){
-////        Collection<Product> beans = null;
-//        try {
-////            while (fileName.en)
-//            Collection<Product> beans = new CsvToBeanBuilder (new FileReader (fileName))
-//                    .withType(Product.class).withSeparator (delimiter).withSkipLines (lastReadline).build().parse();
-//
-//        } catch (Exception e) {
-//            e.printStackTrace ( );
-//        }
-//
-//
-//        return beans;
-//
-//    }
-
-
-
 
 }

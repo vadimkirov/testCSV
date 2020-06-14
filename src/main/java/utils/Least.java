@@ -31,16 +31,16 @@ public class Least {
     public static  Queue<Product> leastN(Collection<Product> input, int maxCount) {
         assert maxCount > 0;
         int count= 0;
-        Queue<Product> pq = new PriorityBlockingQueue<>(maxCount, priceComparator);
+        Queue<Product> pq = new PriorityBlockingQueue<>(maxCount, (x,y) -> Float.compare (y.getPrice(),x.getPrice()));
         for (Product t : input) {
             if (count < maxCount) {
-                pq.add(t);
+                pq.offer(t);
                 ++count;
             } else {
                 assert pq.peek() != null;
                 if (pq.peek().compareTo(t) > 0) {
                     pq.poll();
-                    pq.add(t);
+                    pq.offer(t);
                 }
             }
         }
@@ -54,7 +54,7 @@ public class Least {
     }
 
     public static void checkAndChangeBean(Product p, PriorityBlockingQueue<Product> product, int maxRep, AtomicInteger count){
-        if(product.size ()<maxRep){
+        if(count.get ()<maxRep){
             product.add(p);
             count.addAndGet (1);
         }else {
@@ -66,5 +66,4 @@ public class Least {
         }
     }
 
-    public static Comparator<Product> priceComparator = (x,y) -> Float.compare (y.getPrice(),x.getPrice());
 }
