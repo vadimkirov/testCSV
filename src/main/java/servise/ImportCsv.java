@@ -1,4 +1,4 @@
-package importdata;
+package servise;
 
 import model.Product;
 
@@ -12,11 +12,12 @@ import java.util.Scanner;
 import java.util.concurrent.*;
 
 import static utils.Least.*;
-import static utils.UI.filesList;
+import static utils.UI.*;
 
 public class ImportCsv {
 
     static Scanner sc = new Scanner(System.in);
+
     public static void main(String[] args) {
 
         String temp = uiAnswer("Введите символ разделителя данных в файле(ах)(пример разделителя  ;    :");
@@ -27,7 +28,8 @@ public class ImportCsv {
     }
 
 
-    private static String uiAnswer(String question){
+    //запрос-ответ в текстовом формате
+    public static String uiAnswer(String question){
         String answer="";
         while (answer.equals("")){
             System.out.print(question);
@@ -37,6 +39,7 @@ public class ImportCsv {
     }
 
 
+    //запрос-ответ в числовом формате
     private static int uiNumberAnswer(String question, int defaultValue){
         int temp;
         try{
@@ -48,21 +51,9 @@ public class ImportCsv {
     }
 
 
-    private static void lokForDir(Character delimiter){
-        // Считываем исходный каталог для поиска файлов.
-        String temp   = uiAnswer("Введите исходную директорию для поиска файлов:");
-        String directoryPath = temp.length()>0? temp: "";
-        File directory = new File(directoryPath);
-        // Убедимся, что директория найдена и это реально директория, а не файл.
-        if (directory.exists() && directory.isDirectory()) {
-            processDirectory(directory,delimiter);
-        } else {
-            System.out.println("Не удалось найти директорию по указанному пути.");
-        }
-    }
-
-
-    private static void processDirectory(final File directory, final Character delimiter) {
+    //создаем фиксированный пул, так как потоки "долгие"
+    // помещаем список файлов в пул и обрабатываем
+    public static void processDirectory(final File directory, final Character delimiter) {
         // Получаем список доступных файлов в указанной директории.
         List<Path> files = null;
         try {
@@ -89,7 +80,7 @@ public class ImportCsv {
         // Непосредственно многопоточная обработка файлов.
         final int treadCount = Runtime.getRuntime().availableProcessors() + 1; // количество потоков, которые могу запустить
 
-        ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult = new ConcurrentHashMap<> (maxSizeMap,0.5f,1 );//treadCount
+        ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult = new ConcurrentHashMap<> (maxSizeMap,0.5f,treadCount );
 
         PriorityBlockingQueue<Float> priceQueue = new PriorityBlockingQueue<>(maxSizeMap,Comparator.reverseOrder());
 
@@ -120,8 +111,8 @@ public class ImportCsv {
     }
 
 
-
-
+    //заполнение "очереди цен" и
+    //согласно её("очереди цен") данным, результирующей map
     private static void makerFinalList(Path f, Character delimiter, ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult, int maxSizeOutFile, int maxRep, PriorityBlockingQueue<Float> priceQueue) throws FileNotFoundException {
         PriorityBlockingQueue<Product> inputList = makerToMap (f,delimiter,maxSizeOutFile);
         while (!inputList.isEmpty()){
@@ -137,7 +128,6 @@ public class ImportCsv {
                     mapResultFillUp(p,maxRep,mapResult);
                 }
             }
-
         }
     }
 }
