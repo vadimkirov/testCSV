@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
@@ -28,7 +27,7 @@ public class ImportCsv {
     }
 
 
-   private static String uiAnswer(String question){
+    private static String uiAnswer(String question){
         String answer="";
         while (answer.equals("")){
             System.out.print(question);
@@ -90,7 +89,7 @@ public class ImportCsv {
         // Непосредственно многопоточная обработка файлов.
         final int treadCount = Runtime.getRuntime().availableProcessors() + 1; // количество потоков, которые могу запустить
 
-        ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult = new ConcurrentHashMap<> (maxSizeMap,0.5f,treadCount );
+        ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult = new ConcurrentHashMap<> (maxSizeMap,0.5f,1 );//treadCount
 
         PriorityBlockingQueue<Float> priceQueue = new PriorityBlockingQueue<>(maxSizeMap,Comparator.reverseOrder());
 
@@ -121,25 +120,24 @@ public class ImportCsv {
     }
 
 
+
+
     private static void makerFinalList(Path f, Character delimiter, ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult, int maxSizeOutFile, int maxRep, PriorityBlockingQueue<Float> priceQueue) throws FileNotFoundException {
         PriorityBlockingQueue<Product> inputList = makerToMap (f,delimiter,maxSizeOutFile);
         while (!inputList.isEmpty()){
             Product p = inputList.poll();
             if(priceQueue.size() < maxSizeOutFile){
                 priceQueue.offer(p.getPrice());
+                mapResultFillUp(p,maxRep,mapResult);
             }else {
                 assert priceQueue.peek() != null;
                 if (priceQueue.peek().compareTo(p.getPrice()) > 0) {
                     priceQueue.poll();
-                    if (mapResult.containsKey(p.getId())) {
-                        checkAndChangeBean(p, mapResult.get(p.getId()), maxRep);
-                    } else {
-                        PriorityBlockingQueue<Product> queue = new PriorityBlockingQueue<>(maxRep, Collections.reverseOrder());
-                        queue.offer(p);
-                        mapResult.put(p.getId(), queue);
-                    }
+                    priceQueue.offer(p.getPrice());
+                    mapResultFillUp(p,maxRep,mapResult);
                 }
             }
+
         }
     }
 }

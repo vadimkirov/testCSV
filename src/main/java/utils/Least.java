@@ -9,10 +9,7 @@ import model.Product;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
@@ -64,32 +61,42 @@ public class Least {
 
 
     public static List<Product> resultList(ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult, int maxSizeMap){
-    PriorityQueue<Product> res = new PriorityQueue<>();
+        PriorityQueue<Product> res = new PriorityQueue<>();
         mapResult.forEach((key, value) -> res.addAll(value));
-    List<Product> beans = new ArrayList<>();
-    int sizeOutputData = Math.min(res.size(), maxSizeMap);
+        List<Product> beans = new ArrayList<>();
+        int sizeOutputData = Math.min(res.size(), maxSizeMap);
         for (int i = 0; i < sizeOutputData; i++) {
-        beans.add(res.poll());
+            beans.add(res.poll());
 
-    }
-     return beans;
+        }
+        return beans;
     }
 
 
     public static boolean dataOutput(String outDirName, List<Product> beans){
-    boolean flag = false;
+        boolean flag = false;
 
-    File outFile = new File(outDirName,"work_result.csv");
+        File outFile = new File(outDirName,"work_result.csv");
         try {
-        Writer writer = new FileWriter(outFile);
-        StatefulBeanToCsv beanToCsv = new StatefulBeanToCsvBuilder(writer).build();
-        beanToCsv.write(beans);
-        writer.close();
-        flag = true;
-    } catch (IOException | CsvDataTypeMismatchException | CsvRequiredFieldEmptyException e) {
-        e.printStackTrace();
-    }
+            Writer writer = new FileWriter(outFile);
+            StatefulBeanToCsv beanToCsv = new StatefulBeanToCsvBuilder(writer).build();
+            beanToCsv.write(beans);
+            writer.close();
+            flag = true;
+        } catch (IOException | CsvDataTypeMismatchException | CsvRequiredFieldEmptyException e) {
+            e.printStackTrace();
+        }
         return flag;
+    }
+
+    public static void mapResultFillUp(Product p, int maxRep, ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult){
+        if (mapResult.containsKey(p.getId())) {
+            checkAndChangeBean(p, mapResult.get(p.getId()), maxRep);
+        } else {
+            PriorityBlockingQueue<Product> queue = new PriorityBlockingQueue<>(maxRep, Collections.reverseOrder());
+            queue.offer(p);
+            mapResult.put(p.getId(), queue);
+        }
     }
 
 }
