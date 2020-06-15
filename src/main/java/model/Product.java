@@ -5,8 +5,9 @@ import com.opencsv.bean.CsvBindByPosition;
 import java.util.Objects;
 
 public class Product implements Comparable<Product> {
-    @CsvBindByPosition(position = 0)  //@CsvBindByName или  @CsvBindByName(column = "ID", required = true)
-            int id;
+
+    @CsvBindByPosition(position = 0)
+    int id;
 
     @CsvBindByPosition(position = 1)
     String name;
@@ -20,28 +21,10 @@ public class Product implements Comparable<Product> {
     @CsvBindByPosition(position = 4)
     float price;
 
-    public Product(int id, String name, String condition, String state, float price) {
-        this.id = id;
-        this.name = name;
-        this.condition = condition;
-        this.state = state;
-        this.price = price;
-    }
-
+    //по документации нужен для openCSV
     public Product() {
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public String getCondition() {
-        return condition;
-    }
-
-    public String getState() {
-        return state;
-    }
 
     public int getId() {
         return id;
@@ -51,25 +34,6 @@ public class Product implements Comparable<Product> {
         return price;
     }
 
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setCondition(String condition) {
-        this.condition = condition;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public void setPrice(float price) {
-        this.price = price;
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -94,7 +58,6 @@ public class Product implements Comparable<Product> {
         result = 31 * result + (price != +0.0f ? Float.floatToIntBits (price) : 0);
         return result;
     }
-
 
 
     @Override
