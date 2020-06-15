@@ -1,12 +1,14 @@
 package importdata;
 
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.bean.StatefulBeanToCsv;
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.opencsv.exceptions.CsvDataTypeMismatchException;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import model.Product;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FilenameFilter;
+import java.io.*;
+import java.sql.SQLOutput;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -83,7 +85,7 @@ while (!fileTree.isEmpty())
 
 
 
-    private static Queue<Product> makerToMap(File file, Character delimiter, int maxSizeMap ) throws FileNotFoundException {
+    private static PriorityBlockingQueue<Product> makerToMap(File file, Character delimiter, int maxSizeMap ) throws FileNotFoundException {
 
         return  leastN(
                 new CsvToBeanBuilder(new FileReader(file)).withSeparator(delimiter)
@@ -120,6 +122,8 @@ while (!fileTree.isEmpty())
 
         temp = Integer.parseInt(uiAnswer("Введите максимальное количество элементов с одинаковым ID(строк,по умолчанию 20):"));
         int maxRep =  temp > 0 ? temp : 20;
+        System.out.println("Имя файла результатов: work_result.csv");
+        String outDirName = uiAnswer("Введите путь для выгрузки результатов работы утилиты:");
 
         // Непосредственно многопоточная обработка файлов.
         final int treadCount = Runtime.getRuntime().availableProcessors() + 1; // количество потоков, которые могу запустить
@@ -151,37 +155,58 @@ while (!fileTree.isEmpty())
             e.printStackTrace();
         }
 
-        PriorityQueue<Product> res = new PriorityQueue<>(maxSizeMap);
+        PriorityQueue<Product> res = new PriorityQueue<>();
         mapResult.forEach((key, value) -> res.addAll(value));
+        List<Product> beans = new ArrayList<>();
+        for (int i = 0; i < maxSizeMap; i++) {
+            beans.add(res.poll());
 
+        }
+
+
+        Writer writer = null;
+        File outFile = new File(outDirName,"work_result.csv");
+        try {
+            writer = new FileWriter(outFile);
+            StatefulBeanToCsv beanToCsv = new StatefulBeanToCsvBuilder(writer).build();
+            beanToCsv.write(beans);
+            writer.close();
+        } catch (IOException | CsvDataTypeMismatchException | CsvRequiredFieldEmptyException e) {
+            e.printStackTrace();
+        }
 
         //Переделать потом в выгрузку в файл
-        for (int i = 0; i < maxSizeMap; i++) {
-            System.out.println(res.poll());
-        }
+//        for (int i = 0; i < maxSizeMap; i++) {
+//            System.out.println(res.poll());
+//
+//        }
 
     }
 
 
 
 
-    private static void makerFinalList(File f, Character delimiter, ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult, int maxSizeOutFile, int maxRep, AtomicInteger count, PriorityBlockingQueue<Float> priceQueue) throws FileNotFoundException {
-        Queue<Product> inputList = makerToMap (f,delimiter,maxSizeOutFile);
-        for (Product p: inputList) {
-            if(count.get() == 0){
-                priceQueue.add(p.getPrice());
-                count.addAndGet (1);
-            }
-            assert priceQueue.peek() != null;
-            if(priceQueue.peek().compareTo(p.getPrice())>0){
-                if(mapResult.containsKey (p.getId ())){
-                    checkAndChangeBean (p,mapResult.get (p.getId ()), maxRep,count);
-                }else {
-                    PriorityBlockingQueue<Product> queue = new PriorityBlockingQueue<>(maxRep, Collections.reverseOrder());
-                    queue.offer (p);
-                    mapResult.put (p.getId (),queue);
-                    count.addAndGet (1);
+    private static void makerFinalList(File f, Character delimiter, ConcurrentHashMap<Integer, PriorityBlockingQueue<Product>> mapResult, int maxSizeOutFile, int maxRep, AtomicInteger count1, PriorityBlockingQueue<Float> priceQueue) throws FileNotFoundException {
+        PriorityBlockingQueue<Product> inputList = makerToMap (f,delimiter,maxSizeOutFile);
+        while (!inputList.isEmpty()){
+            Product p = inputList.poll();
+            if(priceQueue.size() < maxSizeOutFile){
+                priceQueue.offer(p.getPrice());
+            }else {
+                assert priceQueue.peek() != null;
+                if (priceQueue.peek().compareTo(p.getPrice()) > 0) {
+                    priceQueue.poll();
+                    if (mapResult.containsKey(p.getId())) {
+                        checkAndChangeBean(p, mapResult.get(p.getId()), maxRep);
+                    } else {
+                        PriorityBlockingQueue<Product> queue = new PriorityBlockingQueue<>(maxRep, Collections.reverseOrder());
+                        queue.offer(p);
+                        mapResult.put(p.getId(), queue);
+
+                    }
                 }
+
+
             }
 
         }

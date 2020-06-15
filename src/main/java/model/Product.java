@@ -2,6 +2,8 @@ package model;
 
 import com.opencsv.bean.CsvBindByPosition;
 
+import java.util.Objects;
+
 public class Product implements Comparable<Product> {
     @CsvBindByPosition(position = 0)  //@CsvBindByName или  @CsvBindByName(column = "ID", required = true)
             int id;
@@ -78,9 +80,9 @@ public class Product implements Comparable<Product> {
 
         if ( id != product.id ) return false;
         if ( Float.compare (product.price, price) != 0 ) return false;
-        if ( name != null ? !name.equals (product.name) : product.name != null ) return false;
-        if ( condition != null ? !condition.equals (product.condition) : product.condition != null ) return false;
-        return state != null ? state.equals (product.state) : product.state == null;
+        if (!Objects.equals(name, product.name)) return false;
+        if (!Objects.equals(condition, product.condition)) return false;
+        return Objects.equals(state, product.state);
     }
 
     @Override
