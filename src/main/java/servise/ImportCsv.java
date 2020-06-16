@@ -76,6 +76,9 @@ public class ImportCsv {
 
         System.out.println("Имя файла результатов: work_result.csv");
         String outDirName = uiAnswer("Введите путь для выгрузки результатов работы утилиты:");
+        //!!!!!!!!!!!!!!!!!!!!!! убрать, считаем время работы
+
+//        long startTime = System.currentTimeMillis();
 
         // Непосредственно многопоточная обработка файлов.
         final int treadCount = Runtime.getRuntime().availableProcessors() + 1; // количество потоков, которые могу запустить
@@ -84,30 +87,32 @@ public class ImportCsv {
 
         PriorityBlockingQueue<Float> priceQueue = new PriorityBlockingQueue<>(maxSizeMap,Comparator.reverseOrder());
 
-        ExecutorService service = Executors.newFixedThreadPool(treadCount);
+        ExecutorService service = Executors.newFixedThreadPool(treadCount);//стоит убрать
 
         for (Path f : files) {
-            service.execute(() -> {
+            service.execute(() -> {                                           //стоит убрать
                 try {
                     makerFinalList (f,delimiter, mapResult, maxSizeMap, maxRep, priceQueue);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace ( );
-                }
-            });
+               }
+            });                                                               //стоит убрать
         }
         // Новые задачи более не принимаем, выполняем только оставшиеся.
-        service.shutdown();
+        service.shutdown();                                                   //стоит убрать
         // Ждем завершения выполнения потоков не более waitTime минут.
-        try {
-            service.awaitTermination(waitTime, TimeUnit.MINUTES); //Максимальное время обработки
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        try {                                                                 //стоит убрать
+            service.awaitTermination(waitTime, TimeUnit.MINUTES); //Максимальное время обработки,стоит убрать
+        } catch (InterruptedException e) {                                      //стоит убрать
+            e.printStackTrace();                                                 //стоит убрать
+        }                                                                         //стоит убрать
 
         List<Product> beans= resultList(mapResult,maxSizeMap);
         String report = dataOutput(outDirName,beans)? "Операция выполнена!":"!!! Операция НЕ выполнена";
 
         System.out.println(report);
+//        long endTime = System.currentTimeMillis();
+//        System.out.println("Total execution time: " + (endTime-startTime) + "ms");
     }
 
 
